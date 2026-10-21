@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cold-chain alert monitor</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand-mark" aria-hidden="true">N</div>
+      <div><p class="eyebrow">NIMBUS FREIGHT · OPERATIONS</p><h1>Cold-chain monitor</h1></div>
+      <span class="live-pill"><span></span> DEMO DATA</span>
+    </header>
+
+    <section class="intro">
+      <div><p class="eyebrow">TEMPERATURE EXCEPTIONS</p><h2>Know when a warm reading becomes a real issue.</h2>
+      <p class="subhead">The detector groups sustained temperature excursions by truck and filters brief blips.</p></div>
+      <div class="dataset-note"><span class="dataset-icon">▦</span><div><strong>Sample fleet data</strong><small>{{ reading_count }} readings across {{ truck_count }} trucks</small></div></div>
+    </section>
+
+    <section class="controls card" aria-labelledby="rules-title">
+      <div class="section-heading"><div><p class="eyebrow">DETECTION RULE</p><h3 id="rules-title">Tune the alert criteria</h3></div><span class="rule-label">Applied to bundled dataset</span></div>
+      <form method="get" action="/" class="control-form">
+        <label>Temperature threshold <span class="unit">°C</span>
+          <input type="number" name="threshold_c" step="0.1" min="-50" max="50" value="{{ '%.1f'|format(threshold) }}" required>
+          <small>Readings must be above this value</small>
+        </label>
+        <label>Minimum duration <span class="unit">minutes</span>
+          <input type="number" name="min_duration" step="1" min="0" max="1440" value="{{ '%.0f'|format(duration) }}" required>
+          <small>Elapsed time from first to last warm reading</small>
+        </label>
+        <button type="submit">Update results <span aria-hidden="true">→</span></button>
+      </form>
+      {% if errors %}<div class="form-errors" role="alert">{% for error in errors %}<p>{{ error }}</p>{% endfor %} Default values are shown.</div>{% endif %}
+      <p class="gap-note">Continuity rule: readings more than {{ max_gap|int }} minutes apart start separate episodes.</p>
+    </section>
+
+    <section class="results" aria-labelledby="results-title">
+      <div class="section-heading results-heading"><div><p class="eyebrow">REVIEW QUEUE</p><h3 id="results-title">Alertable episodes</h3></div>
+        <span class="count-badge">{{ episodes|length }} {{ 'alert' if episodes|length == 1 else 'alerts' }}</span></div>
+      {% if episodes %}
+        <div class="episode-list">
+          {% for episode in episodes %}
+          <article class="episode card">
+            <div class="episode-main"><div class="alert-symbol" aria-hidden="true">!</div><div>
+              <div class="truck-row"><h4>{{ episode.truck_id }}</h4><span class="status">SUSTAINED WARMTH</span></div>
+              <p class="episode-time">{{ episode.start.strftime('%b %d, %H:%M') }} <span>→</span> {{ episode.end.strftime('%H:%M') }}</p>
+            </div></div>
+            <div class="metrics">
+              <div><small>DURATION</small><strong>{{ '%.0f'|format(episode.duration_minutes) }} <em>min</em></strong></div>
+              <div><small>PEAK TEMP</small><strong>{{ '%.1f'|format(episode.peak_temperature_c) }} <em>°C</em></strong></div>
+              <div><small>READINGS</small><strong>{{ episode.reading_count }}</strong></div>
+            </div>
+            <p class="reason">Above {{ '%.1f'|format(threshold) }}°C for at least {{ '%.0f'|format(duration) }} minutes.</p>
+          </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state card"><div class="checkmark" aria-hidden="true">✓</div><h4>No sustained issues found</h4><p>No truck exceeded {{ '%.1f'|format(threshold) }}°C for {{ '%.0f'|format(duration) }} minutes under the current rule.</p></div>
+      {% endif %}
+    </section>
+    <footer>Demo uses a fixed synthetic dataset. It recalculates on each page request and does not send or persist live alerts.</footer>
+  </main>
+</body>
+</html>
